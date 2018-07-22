@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <!--<meta name="apple-mobile-web-app-capable" content="yes">
+    <!--<meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <!-- Scripts -->
+<link rel="stylesheet" href="/static/greenhouse2.css" />
+<link rel="stylesheet" href="/static/jquery.mobile.icons.min.css" />
+<link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile.structure-1.4.5.min.css" />
+<script src="http://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+
+
+    <!-- Code for socket.io and device orientation handling -->
+    <script>
+
+        var WEBSOCKET_ROUTE = "/ws";
+        var mode
+        if(window.location.protocol == "http:"){
+            //localhost
+            var ws = new WebSocket("ws://" + window.location.host + WEBSOCKET_ROUTE);
+            }
+        else if(window.location.protocol == "https:"){
+            var ws = new WebSocket("wss://" + window.location.host + WEBSOCKET_ROUTE);
+            }
+
+
+        ws.onopen = function(evt) {
+            $("#ws-status").html("Connected");
+            };
+
+        ws.onmessage = function(evt) {
+            var text = (evt.data)
+
+            if ("m" == text[text.length - 1]) {
+                mode = (text.slice(0, -1));
+                if (mode == 0) {
+                    $("#Filter").val('off').slider("refresh").slider("enable");
+                    $("#Hottub").val('off').slider('refresh').slider("enable");
+                    $("#Greenhouse").val('off').slider('refresh').slider("enable");
+                    $("#slider1").slider('refresh');
+                }
+
+                if (mode == 1) {
+                    $("#Filter").val('on').slider("refresh");
+                    $("#Hottub").slider('disable');
+                    $("#Greenhouse").slider('disable');
+                    $("#slider1").slider('disable');
+                }
+                if (mode == 2) {
+                    $("#Hottub").val('on').slider("refresh");
+                    $("#Filter").slider('disable');
+                    $("#Greenhouse").slider('disable');
+                    $("#slider1").slider('enable');
+                }
+                if (mode == 3) {
+                    $("#Greenhouse").val('on').slider("refresh");
+                    $("#slider1").slider('disable');
+                    $("#Hottub").slider('disable');
+                    $("#Filter").slider('disable');
+                }
+
+                if (mode == 4) {
+                    $("#Greenhouse").slider("disable");
+                    $("#slider1").slider('disable');
+                    $("#Hottub").slider('disable');
+                    $("#Filter").slider('disable');
+                }
+            }
+            if ("c" == text[text.length - 1]) {
+                $("#count_down").html(text.slice(0, -1));
+            }
+            if ("t" == text[text.length - 1]) {
+                $("#time_till").html(text.slice(0, -1));
+            }
+
+            if ("w" == text[text.length - 1]) {
+                $("#ws-water").html(text.slice(0, -1) + "° F");
+            }
+            if ("g" == text[text.length - 1]) {
+                $("#ws-air").html(text.slice(0, -1) + "° F");
+            }
+            if ("o" == text[text.length - 1]) {
+                $("#ws-outside").html(text.slice(0, -1) + "° F");
+            }
+            if ("s" == text[text.length - 1]) {
+                $("#slider1").val( text.slice(0, -1));
+
+            }
+            if (text == "l") {
+                $("#Light").val('on').slider("refresh");
+            } else{
+                 $("#Light").val('off').slider("refresh");
+                  }
+            };
+
+        ws.onclose = function(evt) {
+            $("#ws-status").html("Disconnected");
+
+
+        };
+
+      function filterSwitch(sel){
+        if (sel.value == "on") {
+            $("#Hottub").slider('disable');
+            $("#Greenhouse").slider('disable');
+            ws.send("filter_on");
+            console.log("Device supported");
+        } else if (sel.value == "off") {
+            $("#Hottub").slider('enable');
+            $("#Greenhouse").slider('enable');
+            ws.send("filter_off");
+
+        }
+      }
+
+      function hottubSwitch(sel){
+        if (sel.value == "on") {
+            $("#Filter").slider('disable');
+            $("#Greenhouse").slider('disable');
+            $("#slider1").slider('enable');
+            ws.send("hottub_on");
+
+        } else if (sel.value == "off") {
+            $("#Filter").slider('enable');
+            $("#Greenhouse").slider('enable');
+            $("#slider1").slider('disable');
+            ws.send("hottub_off");
+
+        }
+      }
+        function greenhouseSwitch(sel){
+        if (sel.value == "on") {
+            $("#Hottub").slider('disable');
+            $("#Filter").slider('disable');
+            ws.send("green_on");
+
+        } else if (sel.value == "off") {
+            $("#Hottub").slider('enable');
+            $("#Filter").slider('enable');
+            ws.send("green_off");
+
+        }
+      }
+
+         function lightSwitch(sel){
+        if (sel.value == "on") {
+            ws.send("light_on");
+
+        } else if (sel.value == "off") {
+            ws.send("light_off");
+
+        }
+      }
+
+      function slider1(value){
+
+          ws.send("WT" + value);
+      }
+
+    </script>
+
+
+
+</head>
+
+<body>
+ <!-- LEDs -->
+     <div data-theme="a" data-role="header">
+        <h1>Angie's HotTub</h1>
+    </div>
+
+
+<div class="ui-grid-a">
+    <div class="ui-block-a">
+
+        <div data-role="fieldcontain">
+            <label for="Filter">
+                Filter Timer:<div id="count_down">-:--:--</div>
+            </label>
+            <select name="toggleswitch1" id="Filter" data-theme="a" data-role="slider" onchange="filterSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+
+        </div>
+        <div data-role="fieldcontain">
+            <label for="Hottub">
+                Hot-Tub <div id="ws-water"> . </div>
+            </label>
+            <select name="toggleswitch1" id="Hottub" data-theme="a" data-role="slider" onchange="hottubSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="ui-block-b">
+
+        <div data-role="fieldcontain">
+            <label for="Greenhouse">
+                Greenhouse <div id="ws-air"> . </div>
+            </label>
+            <select name="toggleswitch1" id="Greenhouse" data-theme="a" data-role="slider" onchange="greenhouseSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+
+         <div data-role="fieldcontain">
+            <label for="Light">
+                Light <div>Switch</div>
+            </label>
+            <select name="toggleswitch1" id="Light" data-theme="a" data-role="slider" onchange="lightSwitch(this);">
+                <option value="off">Off</option>
+                <option value="on">On</option>
+            </select>
+        </div>
+    </div>
+
+
+<div><!-- /grid-a -->
+        <div>
+         Water Ready in:<div id="time_till">-:--:--</div>
+
+        </div>
+        <div data-role="fieldcontain">
+            <label for="slider1">
+              Water Temperature Setting
+            </label>
+            <input id="slider1" type="range" name="slider"  min="85" value="105" max="108" animate="slow"
+            data-highlight="false" data-theme="a" onChange="slider1(value);">
+        </div>
+         Outside Temp <div id="ws-outside"> . </div>
+
+</div>
+</body>
+</html>

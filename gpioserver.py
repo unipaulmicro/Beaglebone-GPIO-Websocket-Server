@@ -8,10 +8,10 @@ import Adafruit_BBIO.GPIO as GPIO
 import threading
 import time
 # import datetime   # will need for filter auto run 1 hour/day every day
-from tornado.ioloop import PeriodicCallback  # used to sen data to client 1 / second
+from tornado.ioloop import PeriodicCallback  # used to send data to client once a second
 
 # notes:
-# 1. error checking needed for 1 wire program will fail if three sensors are not on GPIO P9-12
+# 1. error checking needed for 1 wire program will fail if 3 temp sensors are not connected  on GPIO P9-12
 # 2. system uses 4 relay ebay type output board and 3 DS18d20 digital temperature sensors
 # 3. all javascript is in index.html
 # 4.

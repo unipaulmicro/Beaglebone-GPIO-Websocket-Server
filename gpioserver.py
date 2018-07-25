@@ -7,23 +7,33 @@ import tornado.web
 import Adafruit_BBIO.GPIO as GPIO
 import threading
 import time
-import datetime
-from tornado.ioloop import PeriodicCallback
+# import datetime   # will need for filter auto run 1 hour/day every day
+from tornado.ioloop import PeriodicCallback  # used to sen data to client 1 / second
 
-tempw = " "
-tempg = " "
-tempo = " "
+# notes:
+# 1. error checking needed for 1 wire program will fail if three sensors are not on GPIO P9-12
+# 2. system uses 4 relay ebay type output board and 3 DS18d20 digital temperature sensors
+# 3. all javascript is in index.html
+# 4.
+#
+#
+#
+#
+#
+
+tempw = " "  # water Temperature
+tempg = " "  # water Temperature
+tempo = " "  # water Temperature
 mode = 0   # mode 0 stop filter
            # mode 1 filter water 1 hour time out
            # mode 2 run hot tub 2 hour time out
            # mode 3 heat greenhouse
            # mode 4 shut down greenhouse or hot tub => go to mode 0
            # mode 5
-set_water = 105.0
+set_water = 105.0 # hot tub water setting
 cd_time = 0
-time_till = 0
-#tempwfl = float(0)
-time.sleep(10)
+time_till = 0  # estimated time for water to reach temp
+time.sleep(10) # delay needed for 1 wire to init
 from glob import glob
 time.sleep(1.5)
 devicedir = glob("/sys/bus/w1/devices/28-*")
@@ -44,15 +54,19 @@ GPIO.setup("P8_10", GPIO.OUT)  # relay 2 Connected to pump 2_4
 GPIO.output("P8_10", GPIO.HIGH)
 
 #Tornado Folder Paths
+# on beaglebone
+   #/home/pyfiles/  (gpioserver.py)    this is "root folder"
+   # /home/pyfiles/static/        css lives here
+   # /home/pyfiles/templates/    html lives here
 settings = dict(
     template_path=os.path.join(os.path.dirname(__file__), "templates"),
     static_path=os.path.join(os.path.dirname(__file__), "static"))
 #Tonado server port
-PORT = 8888
+PORT = 8888   # set this to your desired port
 
 
 class MainHandler(tornado.web.RequestHandler):
-    def get(self):
+    def get(self):   # this loads web page when user connects
         print "[HTTP](MainHandler) User Connected."
         self.render("index.html")
 
@@ -61,13 +75,13 @@ class WSHandler(tornado.websocket.WebSocketHandler):
     connections = set()
     global mode
 
-    def open(self):
+    def open(self):  # on connection will start 1 second callback
         print '[WS] Connection was opened.'
         self.callback = PeriodicCallback(self.send_data, 1000)
         self.callback.start()
-        self.write_message(str(mode) + "m", binary=False)
+        self.write_message(str(mode) + "m", binary=False)  # send current mode from server to client
 
-    def on_message(self, message):
+    def on_message(self, message):   # receive message from client to server
         global mode
         global set_water
         #print '[WS] Incoming message:', message
@@ -77,7 +91,6 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             mode = 0
         if message == "light_off":
             GPIO.output("P8_8", GPIO.HIGH)
-            #self.write_message("Lo", binary=False)
         if message == "light_on":
             GPIO.output("P8_8", GPIO.LOW)
         if message == "hottub_on":
@@ -88,11 +101,11 @@ class WSHandler(tornado.websocket.WebSocketHandler):
             mode = 3
         if message == "green_off":
             mode = 5
-        if (message[:2]) == "WT":  # this includes first 2 chars
+        if (message[:2]) == "WT":  # this includes first 2 chars WT is water temperature setting
             set_water = message[2:]  # this strips first 2 chars
             #print set_water
 
-    def send_data(self):
+    def send_data(self):  # send data to client  every 1 second
         global mode
         global cd_time
         global set_water
@@ -239,6 +252,8 @@ def timing():
         else:
             time_till = "%d:%02d:%02d" % (0, 0, 0)
 
+
+# setup threads and run
 t1 = threading.Thread(name='ReadTemps', target=update_temp)
 t1.setDaemon(True)
 t1.start()
